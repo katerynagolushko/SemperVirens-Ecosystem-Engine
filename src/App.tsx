@@ -462,9 +462,7 @@ export default function App() {
               <ShieldCheck className="w-4 h-4" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Secure Founder Access</span>
             </div>
-            <p className="text-sm text-sv-neutral">
-              New to SemperVirens? <a href="#" className="text-sv-light-blue font-bold hover:underline">Apply for membership</a>
-            </p>
+
           </div>
         </div>
       </div>
