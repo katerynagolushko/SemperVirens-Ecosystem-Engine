@@ -140,12 +140,43 @@ export default function App() {
       window.history.pushState(null, '', `#${expectedHash}`);
     }
   }, [activeTab, selectedProfile, introFormProfile, user]);
-  // -------------------------------------------------------------
-
   const allExpertise = useMemo(() => {
-    const tags = new Set<string>();
-    ADVISOR_DATA.forEach(p => p.expertise.forEach(e => tags.add(e)));
-    return Array.from(tags).sort();
+    // 1. Gather all unique expertise tags across the database
+    const rawTags = new Set<string>();
+    ADVISOR_DATA.forEach(p => p.expertise.forEach(e => {
+      const tag = e.trim();
+      if (tag) rawTags.add(tag);
+    }));
+
+    // 2. Score each tag based on how many profiles it matches IN TOTAL 
+    //    (using our broadened search criteria: bio, role, company)
+    const tagScores = Array.from(rawTags).map(tag => {
+      const expLower = tag.toLowerCase();
+      let matchCount = 0;
+
+      ADVISOR_DATA.forEach(p => {
+        const hasExactTag = p.expertise.some(e => e.toLowerCase() === expLower);
+        const hasContextualMatch =
+          p.bio.toLowerCase().includes(expLower) ||
+          p.role.toLowerCase().includes(expLower) ||
+          p.company.toLowerCase().includes(expLower);
+
+        if (hasExactTag || hasContextualMatch) {
+          matchCount++;
+        }
+      });
+
+      return { tag, count: matchCount };
+    });
+
+    // 3. Filter for tags that yield at least 2 profiles, sort by match count (descending), 
+    //    take top 15, then sort alphabetically for the UI display.
+    return tagScores
+      .filter(t => t.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15)
+      .map(t => t.tag)
+      .sort();
   }, []);
 
   const filteredNetwork = useMemo(() => {
