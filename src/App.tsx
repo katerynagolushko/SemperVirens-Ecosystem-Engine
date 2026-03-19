@@ -88,6 +88,60 @@ export default function App() {
   const [introFormProfile, setIntroFormProfile] = useState<Profile | null>(null);
   const [introFormState, setIntroFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
 
+  // --- Browser History Integration (Enables the Back Button) ---
+  useEffect(() => {
+    if (!user) return;
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+
+      if (!hash) {
+        // If no hash, default to search
+        setActiveTab('search');
+        setSelectedProfile(null);
+        setIntroFormProfile(null);
+        return;
+      }
+
+      if (['search', 'network', 'my-network', 'graph'].includes(hash)) {
+        setActiveTab(hash as any);
+        setSelectedProfile(null);
+        setIntroFormProfile(null);
+      } else if (hash.startsWith('intro-')) {
+        const id = hash.replace('intro-', '');
+        const p = ADVISOR_DATA.find(x => x.id === id);
+        if (p) setIntroFormProfile(p);
+      } else if (hash.startsWith('profile-')) {
+        const p = ADVISOR_DATA.find(x => x.id === hash);
+        if (p) {
+          setSelectedProfile(p);
+          setIntroFormProfile(null);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    // Process initial hash on refresh or login
+    if (window.location.hash) handleHashChange();
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [user]);
+
+  // Push to hash when state changes, so browser history remembers the step
+  useEffect(() => {
+    if (!user) return;
+    let expectedHash = activeTab;
+    if (introFormProfile) {
+      expectedHash = `intro-${introFormProfile.id}`;
+    } else if (selectedProfile) {
+      expectedHash = selectedProfile.id;
+    }
+
+    if (window.location.hash !== `#${expectedHash}`) {
+      window.history.pushState(null, '', `#${expectedHash}`);
+    }
+  }, [activeTab, selectedProfile, introFormProfile, user]);
+  // -------------------------------------------------------------
+
   const allExpertise = useMemo(() => {
     const tags = new Set<string>();
     ADVISOR_DATA.forEach(p => p.expertise.forEach(e => tags.add(e)));
@@ -113,17 +167,17 @@ export default function App() {
     const normalizedQuery = query.toLowerCase();
     const tokenRegex = /\b[a-z]{3,}\b/g;
     const tokens = normalizedQuery.match(tokenRegex) || [];
-    
+
     // De-duplicate tokens to prevent redundant scoring
     const uniqueTokens = Array.from(new Set(tokens));
-    
+
     if (uniqueTokens.length === 0) return ADVISOR_DATA.slice(0, 3);
 
     // 2. Game Theory Inspired Scoring (Payoff Matrix)
     // We treat this as a cooperative game where the user (Player A) wants maximum relevance, 
     // and the system (Player B) wants to minimize false positives by distributing weighted 'payoffs' 
     // based on the rarity and location of the keyword match.
-    
+
     // Context Weights (The Payoff Structure)
     const PAYOFFS = {
       ROLE_EXACT: 15,    // High payoff: user is looking for a specific job title
@@ -140,7 +194,7 @@ export default function App() {
       uniqueTokens.forEach(token => {
         // Create an exact word boundary regex for precise matching
         const exactRegex = new RegExp(`\\b${token}\\b`, 'i');
-        
+
         let tokenScore = 0;
 
         // Role Evaluation Strategy
@@ -198,10 +252,10 @@ export default function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!request.trim()) return;
-    
+
     setIsSubmitting(true);
     setResults(null);
-    
+
     // Simulate processing time for the complex game theory matrix evaluation
     setTimeout(() => {
       const topMatches = executeMatch(request);
