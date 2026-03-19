@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Send, Sparkles, Users, ArrowRight, Briefcase, Tag, CheckCircle2, ArrowLeft, ExternalLink, Info, FileText, X, ChevronRight, Filter, Share2, Network, User, Bell, Clock, LogOut, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Search, Send, Sparkles, Users, ArrowRight, Briefcase, Tag, CheckCircle2, ArrowLeft, ExternalLink, Info, FileText, X, ChevronRight, Filter, Share2, Network, User, Bell, Clock, LogOut, Lock, Mail, ShieldCheck, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import { ADVISOR_DATA } from './data';
@@ -22,18 +22,34 @@ export default function App() {
   const [requestedIntros, setRequestedIntros] = useState<Set<string>>(new Set());
   const [acceptedIntros, setAcceptedIntros] = useState<Set<string>>(new Set());
 
+  // Messaging & Notifications
+  const [messages, setMessages] = useState<Record<string, { id: string, sender: 'me' | 'them', text: string, timestamp: number }[]>>({});
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<{ id: string, text: string }[]>([]);
+
+  const notify = (text: string) => {
+    const id = Date.now().toString();
+    setNotifications(n => [...n, { id, text }]);
+    setTimeout(() => setNotifications(n => n.filter(x => x.id !== id)), 5000);
+  };
+
   // Load user-specific data when user changes
   useEffect(() => {
     if (user) {
       const savedRequested = localStorage.getItem(`requestedIntros_${user.id}`);
       const savedAccepted = localStorage.getItem(`acceptedIntros_${user.id}`);
+      const savedMessages = localStorage.getItem(`messages_${user.id}`);
+
       setRequestedIntros(savedRequested ? new Set(JSON.parse(savedRequested)) : new Set());
       setAcceptedIntros(savedAccepted ? new Set(JSON.parse(savedAccepted)) : new Set());
+      setMessages(savedMessages ? JSON.parse(savedMessages) : {});
       localStorage.setItem('currentUser', JSON.stringify(user));
     } else {
       localStorage.removeItem('currentUser');
       setRequestedIntros(new Set());
       setAcceptedIntros(new Set());
+      setMessages({});
+      setActiveMessageId(null);
     }
   }, [user]);
 
@@ -41,14 +57,10 @@ export default function App() {
   useEffect(() => {
     if (user) {
       localStorage.setItem(`requestedIntros_${user.id}`, JSON.stringify(Array.from(requestedIntros)));
-    }
-  }, [requestedIntros, user]);
-
-  useEffect(() => {
-    if (user) {
       localStorage.setItem(`acceptedIntros_${user.id}`, JSON.stringify(Array.from(acceptedIntros)));
+      localStorage.setItem(`messages_${user.id}`, JSON.stringify(messages));
     }
-  }, [acceptedIntros, user]);
+  }, [requestedIntros, acceptedIntros, messages, user]);
 
   const [loginName, setLoginName] = useState('');
 
@@ -99,6 +111,7 @@ export default function App() {
         setActiveTab('search');
         setSelectedProfile(null);
         setIntroFormProfile(null);
+        setActiveMessageId(null);
         return;
       }
 
@@ -106,15 +119,22 @@ export default function App() {
         setActiveTab(hash as any);
         setSelectedProfile(null);
         setIntroFormProfile(null);
+        setActiveMessageId(null);
       } else if (hash.startsWith('intro-')) {
         const id = hash.replace('intro-', '');
         const p = ADVISOR_DATA.find(x => x.id === id);
-        if (p) setIntroFormProfile(p);
+        if (p) {
+          setIntroFormProfile(p);
+          setActiveMessageId(null);
+        }
+      } else if (hash.startsWith('message-')) {
+        setActiveMessageId(hash.replace('message-', ''));
       } else if (hash.startsWith('profile-')) {
         const p = ADVISOR_DATA.find(x => x.id === hash);
         if (p) {
           setSelectedProfile(p);
           setIntroFormProfile(null);
+          setActiveMessageId(null);
         }
       }
     };
@@ -130,7 +150,9 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     let expectedHash = activeTab;
-    if (introFormProfile) {
+    if (activeMessageId) {
+      expectedHash = `message-${activeMessageId}`;
+    } else if (introFormProfile) {
       expectedHash = `intro-${introFormProfile.id}`;
     } else if (selectedProfile) {
       expectedHash = selectedProfile.id;
@@ -139,7 +161,7 @@ export default function App() {
     if (window.location.hash !== `#${expectedHash}`) {
       window.history.pushState(null, '', `#${expectedHash}`);
     }
-  }, [activeTab, selectedProfile, introFormProfile, user]);
+  }, [activeTab, selectedProfile, introFormProfile, activeMessageId, user]);
   const allExpertise = useMemo(() => {
     // 1. Gather all unique expertise tags across the database
     const rawTags = new Set<string>();
@@ -350,7 +372,23 @@ export default function App() {
     setIntroFormState('submitting');
     setTimeout(() => {
       setIntroFormState('success');
-      if (introFormProfile) setRequestedIntros(prev => new Set(prev).add(introFormProfile.id));
+      if (introFormProfile) {
+        const targetId = introFormProfile.id;
+        const targetName = introFormProfile.name;
+        setRequestedIntros(prev => new Set(prev).add(targetId));
+
+        // Auto-accept request after 5 seconds
+        setTimeout(() => {
+          setAcceptedIntros(prev => {
+            const next = new Set(prev);
+            if (!next.has(targetId)) { // Prevent re-trigger if already accepted
+              next.add(targetId);
+              notify(`${targetName} has accepted your request, now you can message each other.`);
+            }
+            return next;
+          });
+        }, 5000);
+      }
     }, 1500);
   };
 
@@ -462,13 +500,12 @@ export default function App() {
     </header>
   );
 
-  const AdvisorCard = ({ profile, icon: Icon = ExternalLink, compact = false, showStatus = false }: { profile: Profile, icon?: any, compact?: boolean, showStatus?: boolean }) => {
+  const AdvisorCard = ({ profile, icon: Icon = ExternalLink, compact = false, showStatus = false }: { profile: Profile, icon?: any, compact?: boolean, showStatus?: boolean, key?: React.Key }) => {
     const isRequested = requestedIntros.has(profile.id);
     const isAccepted = acceptedIntros.has(profile.id);
     return (
       <motion.div
         layout
-        key={profile.id}
         onClick={() => setSelectedProfile(profile)}
         className={`bg-white rounded-3xl border border-sv-neutral-lighter shadow-sm hover:shadow-xl hover:border-sv-light-blue/20 transition-all cursor-pointer group flex flex-col relative overflow-hidden ${compact ? 'p-4' : 'p-6'}`}
       >
@@ -485,10 +522,19 @@ export default function App() {
           <div className="flex-1 min-w-0">
             <h4 className="text-lg font-bold text-sv-dark-blue truncate group-hover:text-sv-light-blue transition-colors">{profile.name}</h4>
             <div className="flex items-center gap-1.5 text-sv-neutral-dark mt-0.5">
-              <Briefcase className="w-4 h-4 shrink-0 text-sv-neutral-light" />
               <span className="text-sm font-medium truncate">{profile.role}</span>
             </div>
             <div className="text-xs font-bold text-sv-light-blue uppercase tracking-widest mt-1">{profile.company}</div>
+
+            {isAccepted && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveMessageId(profile.id); }}
+                className="mt-3 text-xs font-bold text-green-600 flex items-center gap-1.5 hover:underline bg-green-50 px-3 py-1.5 rounded-lg w-fit transition-colors hover:bg-green-100"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> Message Now
+              </button>
+            )}
+
           </div>
         </div>
         {!compact && <p className="text-sv-neutral-dark text-sm leading-relaxed mt-4 line-clamp-2">{profile.bio}</p>}
@@ -582,6 +628,65 @@ export default function App() {
     );
   }
 
+  if (activeMessageId) {
+    const chatProfile = ADVISOR_DATA.find(p => p.id === activeMessageId)!;
+    const chatLog = messages[activeMessageId] || [];
+
+    const sendMessage = (e: React.FormEvent) => {
+      e.preventDefault();
+      const input = (e.target as any).messageInput.value;
+      if (!input.trim()) return;
+
+      const newMsg = { id: Date.now().toString(), sender: 'me' as const, text: input, timestamp: Date.now() };
+      setMessages(prev => ({ ...prev, [activeMessageId]: [...(prev[activeMessageId] || []), newMsg] }));
+      (e.target as any).messageInput.value = '';
+
+      // Simulate reply 3 seconds later
+      setTimeout(() => {
+        const reply = { id: Date.now().toString(), sender: 'them' as const, text: `Thanks for reaching out! Let's arrange a time to chat about this.`, timestamp: Date.now() };
+        setMessages(prev => ({ ...prev, [activeMessageId]: [...(prev[activeMessageId] || []), reply] }));
+      }, 3000);
+    };
+
+    return (
+      <div className="min-h-screen bg-sv-neutral-lightest text-sv-dark-blue font-sans">
+        <Header />
+        <main className="max-w-4xl mx-auto px-6 py-8 h-[calc(100vh-64px)] flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+          <button onClick={() => setActiveMessageId(null)} className="mb-4 w-fit flex items-center gap-2 text-sm font-bold text-sv-neutral hover:text-sv-dark-blue group"><ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1" /> BACK</button>
+          <div className="flex-1 bg-white rounded-3xl border border-sv-neutral-lighter shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+            <div className="p-4 sm:p-6 border-b border-sv-neutral-lighter bg-sv-neutral-lightest flex items-center gap-4 cursor-pointer hover:bg-white transition-colors" onClick={() => setSelectedProfile(chatProfile)}>
+              <img src={chatProfile.imageUrl} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm" />
+              <div><div className="font-bold text-xl">{chatProfile.name}</div><div className="text-sm font-medium text-sv-neutral-dark">{chatProfile.role} @ {chatProfile.company}</div></div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {chatLog.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-sv-neutral space-y-3 pb-10">
+                  <div className="w-16 h-16 bg-sv-neutral-lightest rounded-full flex items-center justify-center"><MessageCircle className="w-8 h-8 text-sv-neutral-dark" /></div>
+                  <div className="font-bold text-lg text-sv-dark-blue">Connected Request Accepted</div>
+                  <p className="font-medium text-center">You can now direct message with {chatProfile.name}. Say hello!</p>
+                </div>
+              ) : (
+                chatLog.map(msg => (
+                  <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] font-medium leading-relaxed px-5 py-3 ${msg.sender === 'me' ? 'bg-sv-dark-blue text-white rounded-3xl rounded-br-sm shadow-md' : 'bg-sv-neutral-lightest border border-sv-neutral-lighter text-sv-dark-blue rounded-3xl rounded-bl-sm shadow-sm'}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <form onSubmit={sendMessage} className="p-5 border-t border-sv-neutral-lighter bg-sv-neutral-lightest">
+              <div className="max-w-3xl mx-auto flex gap-3 relative">
+                <input type="text" name="messageInput" placeholder={`Message ${chatProfile.name}...`} className="flex-1 bg-white border border-sv-neutral-lighter rounded-full pl-6 pr-16 py-4 font-medium shadow-sm focus:outline-none focus:ring-4 focus:ring-sv-light-blue/20 focus:border-sv-light-blue transition-all" autoComplete="off" />
+                <button type="submit" className="absolute right-2 top-2 bg-sv-dark-blue text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-sv-light-blue transition-all shadow-md"><Send className="w-4 h-4 ml-1" /></button>
+              </div>
+            </form>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (selectedProfile) {
     const isAccepted = acceptedIntros.has(selectedProfile.id);
     const isRequested = requestedIntros.has(selectedProfile.id);
@@ -597,7 +702,11 @@ export default function App() {
                 <img src={selectedProfile.imageUrl} className="w-40 h-40 rounded-3xl object-cover border-8 border-white bg-white shadow-xl" />
                 <div className="flex gap-3 w-full sm:w-auto">
                   {isRequested && !isAccepted && <button onClick={() => handleAcceptDemo(selectedProfile.id)} className="flex-1 sm:flex-none px-8 py-4 bg-sv-lavender text-white font-bold rounded-2xl shadow-lg hover:scale-105 transition-all">Accept Intro (Demo)</button>}
-                  <button onClick={() => !isRequested && setIntroFormProfile(selectedProfile)} disabled={isRequested} className={`flex-1 sm:flex-none px-8 py-4 rounded-2xl font-bold font-lg transition-all shadow-lg ${isRequested ? 'bg-sv-neutral-lightest text-sv-neutral-dark border border-sv-neutral-lighter' : 'bg-sv-dark-blue text-white hover:bg-sv-dark-blue/90'}`}>{isAccepted ? "Connected" : isRequested ? "Requested" : "Request Intro"}</button>
+                  {isAccepted ? (
+                    <button onClick={() => setActiveMessageId(selectedProfile.id)} className="flex-1 sm:flex-none px-10 py-4 bg-green-500 text-white font-bold rounded-2xl shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2"><MessageCircle className="w-5 h-5" /> Message</button>
+                  ) : (
+                    <button onClick={() => !isRequested && setIntroFormProfile(selectedProfile)} disabled={isRequested} className={`flex-1 sm:flex-none px-8 py-4 rounded-2xl font-bold font-lg transition-all shadow-lg ${isRequested ? 'bg-sv-neutral-lightest text-sv-neutral-dark border border-sv-neutral-lighter' : 'bg-sv-dark-blue text-white hover:bg-sv-dark-blue/90'}`}>{isRequested ? "Request Pending" : "Request Intro"}</button>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -661,6 +770,24 @@ export default function App() {
           )}
           {activeTab === 'graph' && <motion.div key="graph" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}><ConnectionGraph /></motion.div>}
         </AnimatePresence>
+
+        {/* Global Toast Notifications */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
+          <AnimatePresence>
+            {notifications.map(n => (
+              <motion.div key={n.id} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, x: 20 }} className="pointer-events-auto bg-sv-dark-blue text-white pl-4 pr-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Bell className="w-5 h-5 text-sv-light-blue" />
+                </div>
+                <div className="font-medium text-sm leading-snug">{n.text}</div>
+                <button onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))} className="absolute top-2 right-2 text-white/50 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
       </main>
     </div>
   );
