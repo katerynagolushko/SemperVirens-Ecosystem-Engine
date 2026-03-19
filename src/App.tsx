@@ -171,12 +171,24 @@ export default function App() {
 
     // 3. Filter for tags that yield at least 2 profiles, sort by match count (descending), 
     //    take top 15, then sort alphabetically for the UI display.
-    return tagScores
+    const sortedTags = tagScores
       .filter(t => t.count >= 2)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 15)
-      .map(t => t.tag)
-      .sort();
+      .map(t => t.tag);
+
+    // Explicitly guarantee 'CHRO' is always included per request
+    const finalTags = new Set<string>();
+
+    // Check if the dataset has CHRO, otherwise we just inject it exactly as 'CHRO'
+    const chroTag = sortedTags.find(t => t.toLowerCase() === 'chro') || 'CHRO';
+    finalTags.add(chroTag);
+
+    for (const tag of sortedTags) {
+      if (finalTags.size >= 15) break;
+      finalTags.add(tag);
+    }
+
+    return Array.from(finalTags).sort();
   }, []);
 
   const filteredNetwork = useMemo(() => {
