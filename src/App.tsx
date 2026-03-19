@@ -33,6 +33,37 @@ export default function App() {
     setTimeout(() => setNotifications(n => n.filter(x => x.id !== id)), 5000);
   };
 
+  const ToastContainer = () => (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
+      <AnimatePresence>
+        {notifications.map(n => (
+          <motion.div
+            key={n.id}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 20 }}
+            className={`pointer-events-auto bg-sv-dark-blue text-white pl-4 pr-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm relative group ${n.profileId ? 'cursor-pointer hover:bg-sv-dark-blue/90 hover:-translate-y-1 transition-all duration-300' : ''}`}
+            onClick={() => {
+              if (n.profileId) {
+                const p = ADVISOR_DATA.find(x => x.id === n.profileId);
+                if (p) setSelectedProfile(p);
+                setNotifications(prev => prev.filter(x => x.id !== n.id));
+              }
+            }}
+          >
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+              <Bell className="w-5 h-5 text-sv-light-blue" />
+            </div>
+            <div className="font-medium text-sm leading-snug pr-4">{n.text}</div>
+            <button onClick={(e) => { e.stopPropagation(); setNotifications(prev => prev.filter(x => x.id !== n.id)); }} className="absolute top-2 right-2 text-white/50 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+              <X className="w-3 h-3" />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+
   // Load user-specific data when user changes
   useEffect(() => {
     if (user) {
@@ -621,6 +652,7 @@ export default function App() {
             </div>
           </form>
         </main>
+        <ToastContainer />
       </div>
     );
   }
@@ -680,6 +712,7 @@ export default function App() {
             </form>
           </div>
         </main>
+        <ToastContainer />
       </div>
     );
   }
@@ -715,6 +748,7 @@ export default function App() {
             </div>
           </div>
         </main>
+        <ToastContainer />
       </div>
     );
   }
@@ -799,36 +833,7 @@ export default function App() {
           {activeTab === 'graph' && <motion.div key="graph" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}><ConnectionGraph /></motion.div>}
         </AnimatePresence>
 
-        {/* Global Toast Notifications */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
-          <AnimatePresence>
-            {notifications.map(n => (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20 }}
-                className={`pointer-events-auto bg-sv-dark-blue text-white pl-4 pr-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm relative group ${n.profileId ? 'cursor-pointer hover:bg-sv-dark-blue/90 hover:-translate-y-1 transition-all duration-300' : ''}`}
-                onClick={() => {
-                  if (n.profileId) {
-                    const p = ADVISOR_DATA.find(x => x.id === n.profileId);
-                    if (p) setSelectedProfile(p);
-                    setNotifications(prev => prev.filter(x => x.id !== n.id));
-                  }
-                }}
-              >
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Bell className="w-5 h-5 text-sv-light-blue" />
-                </div>
-                <div className="font-medium text-sm leading-snug pr-4">{n.text}</div>
-                <button onClick={(e) => { e.stopPropagation(); setNotifications(prev => prev.filter(x => x.id !== n.id)); }} className="absolute top-2 right-2 text-white/50 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
-                  <X className="w-3 h-3" />
-                </button>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
+        <ToastContainer />
       </main>
     </div>
   );
