@@ -149,15 +149,52 @@ export default function App() {
   }, []);
 
   const filteredNetwork = useMemo(() => {
-    return ADVISOR_DATA.filter(p => {
+    let result = ADVISOR_DATA.filter(p => {
+      // 1. General search bar text matching
       const matchesSearch = networkSearch === '' ||
         p.name.toLowerCase().includes(networkSearch.toLowerCase()) ||
         p.role.toLowerCase().includes(networkSearch.toLowerCase()) ||
         p.company.toLowerCase().includes(networkSearch.toLowerCase()) ||
-        p.expertise.some(e => e.toLowerCase().includes(networkSearch.toLowerCase()));
-      const matchesExpertise = !selectedExpertise || p.expertise.includes(selectedExpertise);
+        p.expertise.some(e => e.toLowerCase().includes(networkSearch.toLowerCase())) ||
+        p.bio.toLowerCase().includes(networkSearch.toLowerCase()); // Also included bio in the general search
+
+      // 2. Expertise tag filtering (Broadened to include past experience and role)
+      let matchesExpertise = true;
+      if (selectedExpertise) {
+        const expLower = selectedExpertise.toLowerCase();
+
+        // Exact tag match (Strongest signal)
+        const hasExactTag = p.expertise.some(e => e.toLowerCase() === expLower);
+
+        // Contextual matches (Past roles, bio, current role)
+        const hasContextualMatch =
+          p.bio.toLowerCase().includes(expLower) ||
+          p.role.toLowerCase().includes(expLower) ||
+          p.company.toLowerCase().includes(expLower);
+
+        matchesExpertise = hasExactTag || hasContextualMatch;
+      }
+
       return matchesSearch && matchesExpertise;
     });
+
+    // 3. Sort Results if Expertise is selected
+    // Since we broadened the filter, we want to ensure people with the ACTUAL
+    // expertise tag appear at the top (1-3 profiles usually), followed by
+    // people who just mentioned it in their bio/past roles.
+    if (selectedExpertise) {
+      const expLower = selectedExpertise.toLowerCase();
+      result.sort((a, b) => {
+        const aHasExact = a.expertise.some(e => e.toLowerCase() === expLower);
+        const bHasExact = b.expertise.some(e => e.toLowerCase() === expLower);
+
+        if (aHasExact && !bHasExact) return -1;
+        if (!aHasExact && bHasExact) return 1;
+        return 0; // If they both have it perfectly (or both just contextually), preserve order
+      });
+    }
+
+    return result;
   }, [networkSearch, selectedExpertise]);
 
   // Custom Matchmaker algorithm combining Regex + Keyword extraction with a Game Theory inspired scoring matrix
