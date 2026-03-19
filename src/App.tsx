@@ -12,7 +12,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [activeTab, setActiveTab] = useState<'search' | 'network' | 'my-network' | 'graph'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'network' | 'my-network' | 'graph' | 'messages'>('search');
   const [request, setRequest] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<Profile[] | null>(null);
@@ -91,10 +91,6 @@ export default function App() {
     setResults(null);
   };
 
-  const handleAcceptDemo = (id: string) => {
-    setAcceptedIntros(prev => new Set(prev).add(id));
-  };
-
   const [networkSearch, setNetworkSearch] = useState('');
   const [selectedExpertise, setSelectedExpertise] = useState<string | null>(null);
   const [introFormProfile, setIntroFormProfile] = useState<Profile | null>(null);
@@ -115,7 +111,7 @@ export default function App() {
         return;
       }
 
-      if (['search', 'network', 'my-network', 'graph'].includes(hash)) {
+      if (['search', 'network', 'my-network', 'graph', 'messages'].includes(hash)) {
         setActiveTab(hash as any);
         setSelectedProfile(null);
         setIntroFormProfile(null);
@@ -460,6 +456,7 @@ export default function App() {
             { id: 'network', label: 'Discover', icon: Users },
             { id: 'my-network', label: 'My Network', icon: User },
             { id: 'graph', label: 'Graph View', icon: Network },
+            { id: 'messages', label: 'Messages', icon: MessageCircle },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -701,7 +698,6 @@ export default function App() {
               <div className="relative flex flex-col sm:flex-row justify-between items-end -mt-20 mb-10 gap-6">
                 <img src={selectedProfile.imageUrl} className="w-40 h-40 rounded-3xl object-cover border-8 border-white bg-white shadow-xl" />
                 <div className="flex gap-3 w-full sm:w-auto">
-                  {isRequested && !isAccepted && <button onClick={() => handleAcceptDemo(selectedProfile.id)} className="flex-1 sm:flex-none px-8 py-4 bg-sv-lavender text-white font-bold rounded-2xl shadow-lg hover:scale-105 transition-all">Accept Intro (Demo)</button>}
                   {isAccepted ? (
                     <button onClick={() => setActiveMessageId(selectedProfile.id)} className="flex-1 sm:flex-none px-10 py-4 bg-green-500 text-white font-bold rounded-2xl shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2"><MessageCircle className="w-5 h-5" /> Message</button>
                   ) : (
@@ -765,6 +761,38 @@ export default function App() {
                   {acceptedIntros.size === 0 ? <div className="bg-white rounded-[2rem] border-2 border-dashed border-sv-neutral-lighter p-20 text-center"><p className="text-sv-neutral">Requests will appear here once accepted.</p></div> : <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{ADVISOR_DATA.filter(p => acceptedIntros.has(p.id)).map(p => <AdvisorCard key={p.id} profile={p} showStatus />)}</div>}
                   {requestedIntros.size > acceptedIntros.size && <div className="pt-12 space-y-6"><h2 className="text-2xl font-bold flex items-center gap-3"><Clock className="w-6 h-6 text-sv-orange" />Pending Requests</h2><div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-70">{ADVISOR_DATA.filter(p => requestedIntros.has(p.id) && !acceptedIntros.has(p.id)).map(p => <AdvisorCard key={p.id} profile={p} showStatus />)}</div></div>}
                 </div>
+              </div>
+            </motion.div>
+          )}
+          {activeTab === 'messages' && (
+            <motion.div key="messages" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto space-y-6">
+              <h1 className="text-3xl font-bold flex items-center gap-3"><MessageCircle className="w-8 h-8 text-sv-light-blue" /> Direct Messages</h1>
+              <div className="bg-white rounded-3xl shadow-lg border border-sv-neutral-lighter overflow-hidden">
+                {Array.from(acceptedIntros).length === 0 ? (
+                  <div className="p-12 text-center text-sv-neutral font-medium">No messages yet. When a founder accepts your request, the conversation will appear here!</div>
+                ) : (
+                  <div className="divide-y divide-sv-neutral-lighter">
+                    {Array.from(acceptedIntros).map(id => {
+                      const p = ADVISOR_DATA.find(x => x.id === id);
+                      if (!p) return null;
+                      const msgs = messages[id] || [];
+                      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1].text : 'Connected! Tap to say hello.';
+                      const lastTime = msgs.length > 0 ? new Date(msgs[msgs.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div key={id} onClick={() => setActiveMessageId(id)} className="p-4 sm:p-6 flex items-center gap-4 cursor-pointer hover:bg-sv-neutral-lightest transition-colors group">
+                          <img src={p.imageUrl} className="w-14 h-14 rounded-full object-cover shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-bold text-lg text-sv-dark-blue truncate group-hover:text-sv-light-blue transition-colors">{p.name}</div>
+                              {lastTime && <div className="text-xs font-bold text-sv-neutral uppercase tracking-widest">{lastTime}</div>}
+                            </div>
+                            <div className="text-sm text-sv-neutral-dark font-medium truncate">{lastMsg}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
