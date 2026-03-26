@@ -470,13 +470,13 @@ export default function App() {
   }
 
   const Header = () => (
-    <header className="bg-white/80 backdrop-blur-md border-b border-sv-neutral-lighter sticky top-0 z-30 transition-all">
+    <header className="bg-white border-b-2 border-black sticky top-0 z-30 transition-all">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setActiveTab('search'); setSelectedProfile(null); }}>
-          <div className="w-9 h-9 bg-sv-dark-blue rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform shadow-sm">
-            <span className="text-white font-sans font-bold text-xl leading-none">S</span>
+        <div className="flex items-center gap-4 cursor-pointer group" onClick={() => { setActiveTab('search'); setSelectedProfile(null); }}>
+          <div className="w-10 h-10 bg-[#FF5A00] flex items-center justify-center transform group-hover:-translate-y-1 transition-transform shadow-[4px_4px_0_0_#000]">
+            <span className="text-white font-serif font-black text-2xl leading-none italic">a</span>
           </div>
-          <span className="font-sans font-bold text-xl tracking-tight text-sv-dark-blue hidden sm:inline">SemperVirens</span>
+          <span className="font-serif font-black text-2xl tracking-tighter text-black hidden sm:inline">a16z network</span>
         </div>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -533,24 +533,24 @@ export default function App() {
       <motion.div
         layout
         onClick={() => setSelectedProfile(profile)}
-        className={`bg-white rounded-3xl border border-sv-neutral-lighter shadow-sm hover:shadow-xl hover:border-sv-light-blue/20 transition-all cursor-pointer group flex flex-col relative overflow-hidden ${compact ? 'p-4' : 'p-6'}`}
+        className={`bg-white border-2 border-black transition-all cursor-pointer group flex flex-col relative overflow-hidden ${compact ? 'p-4' : 'p-6'} hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]`}
       >
         {showStatus && (
-          <div className={`absolute top-0 right-0 px-3 py-1 border-b border-l border-sv-neutral-lighter text-[10px] font-bold uppercase tracking-widest ${isAccepted ? 'bg-green-50 text-green-600' : 'bg-sv-neutral-lightest text-sv-neutral'}`}>
+          <div className={`absolute top-0 right-0 px-3 py-1 border-b-2 border-l-2 border-black text-[10px] font-bold uppercase tracking-widest ${isAccepted ? 'bg-[#FF5A00] text-white' : 'bg-[#E5E5E5] text-black'}`}>
             {isAccepted ? 'Connected' : 'Pending'}
           </div>
         )}
         <div className="flex gap-4 sm:gap-6">
           <div className="shrink-0 relative">
-            <img src={profile.imageUrl} alt={profile.name} className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-2xl object-cover border border-sv-neutral-lightest shadow-sm bg-sv-neutral-lightest`} referrerPolicy="no-referrer" />
-            {isAccepted && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>}
+            <img src={profile.imageUrl} alt={profile.name} className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-none object-cover border-2 border-black grayscale group-hover:grayscale-0 transition-all duration-500`} referrerPolicy="no-referrer" />
+            {isAccepted && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#FF5A00] border-2 border-white rounded-none"></div>}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-lg font-bold text-sv-dark-blue truncate group-hover:text-sv-light-blue transition-colors">{profile.name}</h4>
-            <div className="flex items-center gap-1.5 text-sv-neutral-dark mt-0.5">
+            <h4 className="text-xl font-serif font-bold text-black truncate">{profile.name}</h4>
+            <div className="flex items-center gap-1.5 text-[#666] mt-0.5">
               <span className="text-sm font-medium truncate">{profile.role}</span>
             </div>
-            <div className="text-xs font-bold text-sv-light-blue uppercase tracking-widest mt-1">{profile.company}</div>
+            <div className="text-xs font-bold text-[#FF5A00] uppercase tracking-widest mt-1">{profile.company}</div>
 
             {isAccepted && (
               <button
@@ -759,17 +759,17 @@ export default function App() {
           {activeTab === 'search' && (
             <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-4xl mx-auto space-y-12">
               <div className="space-y-6 text-center sm:text-left">
-                <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-sv-dark-blue leading-tight">Scale your <span className="bg-gradient-to-r from-sv-lavender via-sv-salmon to-sv-orange bg-clip-text text-transparent">Power Network.</span></h1>
-                <p className="text-xl text-sv-neutral-dark max-w-2xl leading-relaxed font-medium">Find the specific bridging connections you need for your ecosystem goals.</p>
+                <h1 className="text-6xl sm:text-8xl font-serif font-black tracking-tighter text-black leading-none">Power Network</h1>
+                <p className="text-xl sm:text-2xl text-[#666] max-w-2xl leading-relaxed font-medium">Find the specific bridging connections you need within the a16z ecosystem.</p>
               </div>
-              <div className="bg-white rounded-[2.5rem] shadow-2xl border border-sv-neutral-lightest overflow-hidden focus-within:ring-8 focus-within:ring-sv-light-blue/5 transition-all">
+              <div className="bg-white border-4 border-black shadow-[12px_12px_0_0_#FF5A00] transition-all relative">
                 <form onSubmit={handleSubmit}>
-                  <textarea value={request} onChange={(e) => setRequest(e.target.value)} placeholder="e.g. 'A VP of Sales at an Enterprise HR-tech company...'" className="w-full min-h-[180px] p-8 text-xl bg-transparent border-none resize-none focus:ring-0 font-medium" />
-                  <div className="px-8 py-6 bg-sv-neutral-lightest flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs font-bold text-sv-neutral uppercase tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> {requestedIntros.size} ecosystem requests</div>
+                  <textarea value={request} onChange={(e) => setRequest(e.target.value)} placeholder="e.g. 'A VP of Sales at an Enterprise HR-tech company...'" className="w-full min-h-[180px] p-8 text-2xl font-serif italic bg-transparent border-none resize-none focus:ring-0 text-black placeholder:text-[#999]" />
+                  <div className="px-8 py-6 border-t-4 border-black bg-[#F9F9F9] flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-xs font-bold text-black uppercase tracking-widest flex items-center gap-2"><Clock className="w-4 h-4" /> {requestedIntros.size} ecosystem requests</div>
                     <div className="flex gap-3 w-full sm:w-auto">
-                      {results && <button type="button" onClick={() => { setResults(null); setRequest(''); }} className="px-6 py-4 bg-white border border-sv-neutral-lighter rounded-2xl font-bold">Reset</button>}
-                      <button type="submit" disabled={!request.trim() || isSubmitting || results !== null} className="flex-1 sm:flex-none px-10 py-4 bg-sv-dark-blue text-white font-bold rounded-2xl shadow-xl disabled:opacity-50">{isSubmitting ? "Scanning..." : "Scan Network"}</button>
+                      {results && <button type="button" onClick={() => { setResults(null); setRequest(''); }} className="px-6 py-4 bg-white border-2 border-black hover:bg-black hover:text-white transition-colors font-bold uppercase tracking-widest text-xs">Reset</button>}
+                      <button type="submit" disabled={!request.trim() || isSubmitting || results !== null} className="flex-1 sm:flex-none px-10 py-4 bg-black text-white font-bold tracking-widest uppercase text-xs hover:bg-[#FF5A00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? "Scanning..." : "Scan Network"}</button>
                     </div>
                   </div>
                 </form>

@@ -1,40 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Rethink Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Rethink Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
-  --color-sv-light-blue: #0ca2fe;
-  --color-sv-light-blue-light: #54bdfe;
-  --color-sv-light-blue-dark: #0981cb;
-  --color-sv-light-blue-lighter: #ceecfe;
-  --color-sv-light-blue-lightest: #e6f5fe;
-  --color-sv-light-blue-darker: #044065;
-  --color-sv-light-blue-darkest: #03304c;
+  /* a16z Core Palette */
+  --color-a16z-orange: #FF5A00;
+  --color-a16z-black: #111111;
+  --color-a16z-black-hover: #222222;
+  --color-a16z-white: #FFFFFF;
+  --color-a16z-offwhite: #F9F9F9;
+  --color-a16z-border: #E5E5E5;
+  --color-a16z-gray: #666666;
+  --color-a16z-gray-light: #CCCCCC;
 
-  --color-sv-dark-blue: #0c1438;
-  --color-sv-dark-blue-light: #545a73;
-  --color-sv-dark-blue-lighter: #ced0d7;
-  --color-sv-dark-blue-lightest: #e6e7eb;
-  --color-sv-dark-blue-dark: #09102c;
-  --color-sv-dark-blue-darker: #040816;
-  --color-sv-dark-blue-darkest: #030610;
+  /* Map old variables temporarily to new strict palette so app doesn't break during transition */
+  --color-sv-light-blue: var(--color-a16z-orange);
+  --color-sv-light-blue-light: var(--color-a16z-orange);
+  --color-sv-light-blue-dark: #cc4800;
+  --color-sv-light-blue-lighter: #ffebe0;
+  --color-sv-light-blue-lightest: #fff4ed;
+  
+  --color-sv-dark-blue: var(--color-a16z-black);
+  --color-sv-dark-blue-light: var(--color-a16z-gray);
+  --color-sv-dark-blue-lighter: var(--color-a16z-gray-light);
+  --color-sv-dark-blue-lightest: var(--color-a16z-border);
+  --color-sv-dark-blue-dark: #000000;
+  --color-sv-dark-blue-darker: #000000;
+  --color-sv-dark-blue-darkest: #000000;
+  
+  --color-sv-orange: var(--color-a16z-orange);
+  --color-sv-salmon: var(--color-a16z-orange);
+  --color-sv-lavender: var(--color-a16z-black);
 
-  --color-sv-orange: #f5904d;
-  --color-sv-salmon: #fd5d5f;
-  --color-sv-lavender: #8977d8;
-
-  --color-sv-neutral-darkest: #010103;
-  --color-sv-neutral-darker: #1a1a1c;
-  --color-sv-neutral-dark: #4d4d4e;
-  --color-sv-neutral: #808081;
-  --color-sv-neutral-light: #b2b2b3;
-  --color-sv-neutral-lighter: #d8d8d9;
-  --color-sv-neutral-lightest: #f2f2f2;
+  --color-sv-neutral-darkest: var(--color-a16z-black);
+  --color-sv-neutral-darker: #222222;
+  --color-sv-neutral-dark: var(--color-a16z-gray);
+  --color-sv-neutral: #999999;
+  --color-sv-neutral-light: var(--color-a16z-gray-light);
+  --color-sv-neutral-lighter: var(--color-a16z-border);
+  --color-sv-neutral-lightest: var(--color-a16z-offwhite);
 }
 
 body {
-  background-color: var(--color-sv-neutral-lightest);
-  color: var(--color-sv-neutral-darkest);
+  background-color: var(--color-a16z-offwhite);
+  color: var(--color-a16z-black);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, .font-serif {
+  letter-spacing: -0.02em;
 }
